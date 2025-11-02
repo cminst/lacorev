@@ -392,15 +392,6 @@ def generate_video_output(out_path, H_p, W_p, frames_rgb, spatial_edges, tempora
                 y2 = r2 * patch_height + patch_height // 2
                 cv2.line(output_frame, (x1, y1), (x2, y2), (0, 165, 255),2)
 
-        # Draw temporal edges (orange lines, BGR format)
-        # for (f0, r1, c1, f1, r2, c2) in temporal_edges:
-        #     if f0 == frame_idx:
-        #         x1 = c1 * patch_width + patch_width // 2
-        #         y1 = r1 * patch_height + patch_height // 2
-        #         x2 = c2 * patch_width + patch_width // 2
-        #         y2 = r2 * patch_height + patch_height // 2
-        #         cv2.line(output_frame, (x1, y1), (x2, y2), (0, 165, 255), 1.5)
-
         output_frames.append(output_frame)
 
     # Write video
