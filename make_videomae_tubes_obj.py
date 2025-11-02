@@ -362,8 +362,8 @@ def generate_video_output(out_path, H_p, W_p, frames_rgb, spatial_edges, tempora
     output_frames = []
     
     for frame_idx, frame in enumerate(frames_rgb):
-        # Create a copy of the original frame
-        output_frame = frame.copy()
+        # Convert RGB to BGR for OpenCV
+        output_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         
         # Draw grid lines (thin black)
         # Vertical lines
@@ -376,30 +376,30 @@ def generate_video_output(out_path, H_p, W_p, frames_rgb, spatial_edges, tempora
             y = r * patch_height
             cv2.line(output_frame, (0, y), (original_width, y), (0, 0, 0), 1)
         
-        # Draw orange circles at patch centers
+        # Draw orange circles at patch centers (BGR format: blue=0, green=165, red=255)
         for r in range(H_p):
             for c in range(W_p):
                 center_x = c * patch_width + patch_width // 2
                 center_y = r * patch_height + patch_height // 2
-                cv2.circle(output_frame, (center_x, center_y), 3, (255, 165, 0), -1)
+                cv2.circle(output_frame, (center_x, center_y), 3, (0, 165, 255), -1)
         
-        # Draw spatial edges (orange lines)
+        # Draw spatial edges (orange lines, BGR format)
         for (f, r1, c1, f2, r2, c2) in spatial_edges:
             if f == frame_idx:
                 x1 = c1 * patch_width + patch_width // 2
                 y1 = r1 * patch_height + patch_height // 2
                 x2 = c2 * patch_width + patch_width // 2
                 y2 = r2 * patch_height + patch_height // 2
-                cv2.line(output_frame, (x1, y1), (x2, y2), (255, 165, 0), 2)
+                cv2.line(output_frame, (x1, y1), (x2, y2), (0, 165, 255), 1)
         
-        # Draw temporal edges (orange lines)
+        # Draw temporal edges (orange lines, BGR format)
         for (f0, r1, c1, f1, r2, c2) in temporal_edges:
             if f0 == frame_idx:
                 x1 = c1 * patch_width + patch_width // 2
                 y1 = r1 * patch_height + patch_height // 2
                 x2 = c2 * patch_width + patch_width // 2
                 y2 = r2 * patch_height + patch_height // 2
-                cv2.line(output_frame, (x1, y1), (x2, y2), (255, 165, 0), 2)
+                cv2.line(output_frame, (x1, y1), (x2, y2), (0, 165, 255), 1)
         
         output_frames.append(output_frame)
     
