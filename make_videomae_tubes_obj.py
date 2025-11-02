@@ -241,14 +241,14 @@ def write_obj_with_edges(out_path, H_p, W_p, frames_rgb, spatial_edges, temporal
       - per-frame patch centers as vertices,
       - orange lines for spatial (intra-frame) edges,
       - blue lines for temporal edges (across frames).
-    Frame arrangement: Frames are positioned in a row along the Y-axis (front to back)
-    rather than side-by-side along the X-axis.
+    Frame arrangement: Frames are positioned in a row along the Z-axis (front to back)
+    rather than side-by-side.
     """
     out_path = Path(out_path)
     out_mtl = out_path.with_suffix(".mtl")
 
     # Build vertex positions for patch centers per frame
-    # Frame layout: along +Y (front to back), each frame width = W_p*unit, gap = frame_spacing
+    # Frame layout: along +Z (front to back), each frame width = W_p*unit, gap = frame_spacing
     verts_centers = {}  # (f, r, c) -> vertex index (1-based)
     vertices = []
 
@@ -268,26 +268,25 @@ def write_obj_with_edges(out_path, H_p, W_p, frames_rgb, spatial_edges, temporal
 
     # Patch centers and grid dividers
     for f_idx in range(len(frames_rgb)):
-        x0 = 0.0  # All frames aligned on X axis
-        y0 = f_idx * (frame_h + frame_spacing)  # Position frames along Y axis (front to back)
+        z0 = f_idx * frame_spacing  # Position frames along Z axis (front to back)
         # Patch centers
         for r in range(H_p):
             for c in range(W_p):
-                x = x0 + (c + 0.5) * unit
-                y = y0 + (H_p - 1 - r + 0.5) * unit  # origin at bottom-left
-                idx_v = add_vertex(x, y, 0.0)
+                x = (c + 0.5) * unit
+                y = (H_p - 1 - r + 0.5) * unit  # origin at bottom-left
+                idx_v = add_vertex(x, y, z0)
                 verts_centers[(f_idx, r, c)] = idx_v
         # Grid vertical lines
         for c in range(W_p + 1):
-            x = x0 + c * unit
-            v1 = add_vertex(x, y0, 0.0)
-            v2 = add_vertex(x, y0 + frame_h, 0.0)
+            x = c * unit
+            v1 = add_vertex(x, 0, z0)
+            v2 = add_vertex(x, frame_h, z0)
             grid_lines.append((v1, v2))
         # Grid horizontal lines
         for r in range(H_p + 1):
-            y = y0 + r * unit
-            v1 = add_vertex(x0, y, 0.0)
-            v2 = add_vertex(x0 + frame_w, y, 0.0)
+            y = r * unit
+            v1 = add_vertex(0, y, z0)
+            v2 = add_vertex(frame_w, y, z0)
             grid_lines.append((v1, v2))
 
     # Build line lists for edges
