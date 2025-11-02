@@ -89,7 +89,7 @@ def load_model_and_processor(model_id, device="cpu", dtype_str="float32"):
     from transformers import AutoImageProcessor, VideoMAEModel
     dtype = {"float32": torch.float32, "float16": torch.float16, "bfloat16": torch.bfloat16}[dtype_str]
     processor = AutoImageProcessor.from_pretrained(model_id)  # VideoMAEImageProcessor
-    model = VideoMAEModel.from_pretrained(model_id)
+    model = VideoMAEModel.from_pretrained(model_id, attn_implementation="eager")
     model.to(device=device, dtype=dtype)
     model.eval()
     return model, processor
@@ -369,6 +369,11 @@ def main():
     pixel_values = pixel_values.to(args.device)
     with torch.no_grad():
         outputs = model(pixel_values, output_attentions=True)
+
+    # --------------
+    assert outputs.attentions, "Output Attentions are null!"
+    # --------------
+    
     attentions = outputs.attentions  # tuple(len = num_layers) of (B, heads, L, L)
     if args.layer < 0 or args.layer >= len(attentions):
         print(f"[!] Layer index {args.layer} out of range (0..{len(attentions)-1}).", file=sys.stderr)
