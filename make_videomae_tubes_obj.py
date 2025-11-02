@@ -313,7 +313,7 @@ def generate_video_output(out_path, input_video_path, all_spatial_edges,
                 y1 = int((r1 + 0.5) * patch_height_orig)
                 x2 = int((c2 + 0.5) * patch_width_orig)
                 y2 = int((r2 + 0.5) * patch_height_orig)
-                cv2.line(frame, (x1, y1), (x2, y2), (0, 165, 255), 2)
+                cv2.line(frame, (x1, y1), (x2, y2), (0, 165, 255), 4)
 
         video_writer.write(frame)
         frame_idx += 1
