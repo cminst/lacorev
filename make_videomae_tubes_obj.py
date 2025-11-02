@@ -335,6 +335,85 @@ def write_obj_with_edges(out_path, H_p, W_p, frames_rgb, spatial_edges, temporal
 
     return str(out_path), str(out_mtl)
 
+
+def generate_video_output(out_path, H_p, W_p, frames_rgb, spatial_edges, temporal_edges,
+                         frame_spacing=6.0, unit=1.0):
+    """
+    Generates an MP4 video with:
+      - Original video frames displayed
+      - Thin black grid lines for patches
+      - Orange circles at patch centers
+      - Orange lines for spatial connections
+      - Orange lines for temporal connections
+    """
+    import cv2
+    import numpy as np
+    
+    out_path = Path(out_path)
+    
+    # Get original frame dimensions
+    original_height, original_width = frames_rgb[0].shape[:2]
+    
+    # Calculate patch dimensions in original coordinates
+    patch_width = original_width // W_p
+    patch_height = original_height // H_p
+    
+    # Create output frames
+    output_frames = []
+    
+    for frame_idx, frame in enumerate(frames_rgb):
+        # Create a copy of the original frame
+        output_frame = frame.copy()
+        
+        # Draw grid lines (thin black)
+        # Vertical lines
+        for c in range(W_p + 1):
+            x = c * patch_width
+            cv2.line(output_frame, (x, 0), (x, original_height), (0, 0, 0), 1)
+        
+        # Horizontal lines
+        for r in range(H_p + 1):
+            y = r * patch_height
+            cv2.line(output_frame, (0, y), (original_width, y), (0, 0, 0), 1)
+        
+        # Draw orange circles at patch centers
+        for r in range(H_p):
+            for c in range(W_p):
+                center_x = c * patch_width + patch_width // 2
+                center_y = r * patch_height + patch_height // 2
+                cv2.circle(output_frame, (center_x, center_y), 3, (255, 165, 0), -1)
+        
+        # Draw spatial edges (orange lines)
+        for (f, r1, c1, f2, r2, c2) in spatial_edges:
+            if f == frame_idx:
+                x1 = c1 * patch_width + patch_width // 2
+                y1 = r1 * patch_height + patch_height // 2
+                x2 = c2 * patch_width + patch_width // 2
+                y2 = r2 * patch_height + patch_height // 2
+                cv2.line(output_frame, (x1, y1), (x2, y2), (255, 165, 0), 2)
+        
+        # Draw temporal edges (orange lines)
+        for (f0, r1, c1, f1, r2, c2) in temporal_edges:
+            if f0 == frame_idx:
+                x1 = c1 * patch_width + patch_width // 2
+                y1 = r1 * patch_height + patch_height // 2
+                x2 = c2 * patch_width + patch_width // 2
+                y2 = r2 * patch_height + patch_height // 2
+                cv2.line(output_frame, (x1, y1), (x2, y2), (255, 165, 0), 2)
+        
+        output_frames.append(output_frame)
+    
+    # Write video
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    fps = 30
+    video_writer = cv2.VideoWriter(str(out_path), fourcc, fps, (original_width, original_height))
+    
+    for frame in output_frames:
+        video_writer.write(frame)
+    
+    video_writer.release()
+    return str(out_path)
+
 def main():
     parser = argparse.ArgumentParser(description="VideoMAE mutual‑kNN → Blender OBJ")
     parser.add_argument("--video", type=str, required=True, help="Path to input video")
@@ -350,7 +429,7 @@ def main():
     parser.add_argument("--unit", type=float, default=1.0, help="Patch cell size in OBJ units")
     parser.add_argument("--device", type=str, default="cuda", choices=["cuda", "cpu"], help="Device to run the model")
     parser.add_argument("--dtype", type=str, default="float32", choices=["float32", "float16", "bfloat16"])
-    parser.add_argument("--out", type=str, required=True, help="Output OBJ path (MTL will be next to it)")
+    parser.add_argument("--out", type=str, required=True, help="Output path (OBJ/MTL files or MP4 video)")
     args = parser.parse_args()
 
     # Load model/processor
@@ -392,14 +471,24 @@ def main():
         k_spatial=args.k_spatial, k_temporal=args.k_temporal, win=args.win
     )
 
-    # Write OBJ
-    obj_path, mtl_path = write_obj_with_edges(
-        args.out, H_p, W_p, frames_rgb=frames,
-        spatial_edges=spatial_edges, temporal_edges=temporal_edges,
-        frame_spacing=args.frame_spacing, unit=args.unit
-    )
-    print(f"[OK] Wrote: {obj_path}\n[OK] Wrote: {mtl_path}")
-    print("Import into Blender: File → Import → Wavefront (.obj)")
+    # Determine output format and write accordingly
+    if args.out.lower().endswith('.mp4'):
+        # Generate video output
+        video_path = generate_video_output(
+            args.out, H_p, W_p, frames_rgb=frames,
+            spatial_edges=spatial_edges, temporal_edges=temporal_edges,
+            frame_spacing=args.frame_spacing, unit=args.unit
+        )
+        print(f"[OK] Wrote video: {video_path}")
+    else:
+        # Write OBJ/MTL files
+        obj_path, mtl_path = write_obj_with_edges(
+            args.out, H_p, W_p, frames_rgb=frames,
+            spatial_edges=spatial_edges, temporal_edges=temporal_edges,
+            frame_spacing=args.frame_spacing, unit=args.unit
+        )
+        print(f"[OK] Wrote: {obj_path}\n[OK] Wrote: {mtl_path}")
+        print("Import into Blender: File → Import → Wavefront (.obj)")
 
 if __name__ == "__main__":
     main()
