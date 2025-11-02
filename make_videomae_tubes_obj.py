@@ -337,7 +337,7 @@ def main():
     parser = argparse.ArgumentParser(description="VideoMAE mutual‑kNN → Blender OBJ")
     parser.add_argument("--video", type=str, required=True, help="Path to input video")
     parser.add_argument("--start", type=int, required=True, help="Start frame index i")
-    parser.add_argument("--num_frames", type=int, default=8, help="Number of frames (default: 8)")
+    parser.add_argument("--num_frames", type=int, default=16, help="Number of frames (default: 16)")
     parser.add_argument("--model_id", type=str, default="MCG-NJU/videomae-base",
                         help="HF model id (default: MCG-NJU/videomae-base)")
     parser.add_argument("--layer", type=int, default=6, help="Encoder layer index to read attentions from (0-based)")
