@@ -30,11 +30,11 @@ import argparse
 import os
 import sys
 from pathlib import Path
-
+import logging
 import numpy as np
 
 # --- Video decoding and processing ---
-import logging
+
 logger = logging.getLogger(__name__)
 
 def get_video_properties(video_path):
