@@ -89,7 +89,7 @@ def read_frames_chunk(video_path, start, num, resize_to=None):
             frames.append(frame)
         cap.release()
     if not frames:
-        print(f"Warning: No frames decoded for start index {start}.", file=sys.stderr)
+        logger.warn(f"Warning: No frames decoded for start index {start}.")
     if resize_to is not None:
         frames = [cv2_resize_safe(f, resize_to) for f in frames]
     return frames
@@ -354,15 +354,15 @@ def main():
         all_spatial_edges = []
 
         num_chunks = total_frames // chunk_size
-        print(f"Video has {total_frames} frames, processing in {num_chunks} chunks of {chunk_size}...")
+        logger.info(f"Video has {total_frames} frames, processing in {num_chunks} chunks of {chunk_size}...")
 
         for i, chunk_start in enumerate(range(0, total_frames, chunk_size)):
             num_in_chunk = min(chunk_size, total_frames - chunk_start)
             if num_in_chunk < chunk_size:
-                print(f"Skipping final incomplete chunk of {num_in_chunk} frames.")
+                logger.info(f"Skipping final incomplete chunk of {num_in_chunk} frames.")
                 continue
 
-            print(f"Processing chunk {i + 1}/{num_chunks} (frames {chunk_start}-{chunk_start + num_in_chunk - 1})...")
+            logger.info(f"Processing chunk {i + 1}/{num_chunks} (frames {chunk_start}-{chunk_start + num_in_chunk - 1})...")
             frames = read_frames_chunk(args.video, chunk_start, num_in_chunk, resize_to=(image_size, image_size))
             if not frames: continue
 
@@ -380,11 +380,11 @@ def main():
             )
             all_spatial_edges.extend([(f + chunk_start, r1, c1, f2, r2, c2) for f, r1, c1, f2, r2, c2 in spatial])
 
-        print("All chunks processed. Rendering final video...")
+        logger.info("All chunks processed. Rendering final video...")
         video_path = generate_video_output(
             args.out, args.video, all_spatial_edges,
             orig_w, orig_h, patch_size, image_size, fps)
-        print(f"[OK] Wrote video: {video_path}")
+        logger.info(f"[OK] Wrote video: {video_path}")
 
     else: # OBJ Output
         frames = read_frames_chunk(args.video, args.start, args.num_frames, resize_to=(image_size, image_size))
@@ -404,8 +404,9 @@ def main():
             args.out, H_p, W_p, frames_rgb=frames,
             spatial_edges=spatial, temporal_edges=temporal,
             frame_spacing=args.frame_spacing, unit=args.unit)
-        print(f"[OK] Wrote: {obj_path}\n[OK] Wrote: {mtl_path}")
-        print("Import into Blender: File → Import → Wavefront (.obj)")
+        logger.info(f"[OK] Wrote: {obj_path}")
+        logger.info(f"[OK] Wrote: {mtl_path}")
+        logger.info("Import into Blender: File → Import → Wavefront (.obj)")
 
 if __name__ == "__main__":
     main()
