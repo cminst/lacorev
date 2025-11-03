@@ -203,9 +203,7 @@ def build_edges_from_attn(attn_L, T_frames, H_p, W_p, tubelet_size, k_spatial=8,
 
 # --- OBJ/MTL writer ---
 def write_obj_with_edges(out_path, H_p, W_p, frames_rgb, spatial_edges, temporal_edges, frame_spacing=6.0, unit=1.0):
-    # This function remains unchanged, as it was correct.
     out_path = Path(out_path)
-    # ... (rest of the function is identical to your original correct version)
     out_mtl = out_path.with_suffix(".mtl")
 
     verts_centers = {}
@@ -261,7 +259,7 @@ def write_obj_with_edges(out_path, H_p, W_p, frames_rgb, spatial_edges, temporal
     return str(out_path), str(out_mtl)
 
 # --- MP4 generator ---
-def generate_video_output(out_path, input_video_path, all_spatial_edges,
+def generate_video_output(out_path, input_video_path, all_spatial_edges, all_temporal_edges,
                           original_width, original_height, patch_size, image_size, fps):
     """
     Renders the output video by reading frames from the original video,
@@ -288,6 +286,14 @@ def generate_video_output(out_path, input_video_path, all_spatial_edges,
             edges_by_frame[frame_idx] = []
         edges_by_frame[frame_idx].append(edge)
 
+    # Group temporal edges by start frame
+    temporal_edges_by_frame = {}
+    for edge in all_temporal_edges:
+        f0 = edge[0]
+        if f0 not in temporal_edges_by_frame:
+            temporal_edges_by_frame[f0] = []
+        temporal_edges_by_frame[f0].append(edge)
+
     frame_idx = 0
     while True:
         ret, frame = cap.read()
@@ -308,7 +314,7 @@ def generate_video_output(out_path, input_video_path, all_spatial_edges,
                 for c in range(W_p):
                     center_x = int((c + 0.5) * patch_width_orig)
                     center_y = int((r + 0.5) * patch_height_orig)
-                    cv2.circle(frame, (center_x, center_y), 3, (0, 165, 255), -1)
+                    cv2.circle(frame, (center_x, center_y), 4, (0, 165, 255), -1)
 
             for (f, r1, c1, f2, r2, c2) in edges_by_frame[frame_idx]:
                 x1 = int((c1 + 0.5) * patch_width_orig)
@@ -316,6 +322,15 @@ def generate_video_output(out_path, input_video_path, all_spatial_edges,
                 x2 = int((c2 + 0.5) * patch_width_orig)
                 y2 = int((r2 + 0.5) * patch_height_orig)
                 cv2.line(frame, (x1, y1), (x2, y2), (0, 165, 255), 4)
+
+        # Draw temporal edges
+        if frame_idx in temporal_edges_by_frame:
+            for (f0, r1, c1, f1, r2, c2) in temporal_edges_by_frame[frame_idx]:
+                x1 = int((c1 + 0.5) * patch_width_orig)
+                y1 = int((r1 + 0.5) * patch_height_orig)
+                x2 = int((c2 + 0.5) * patch_width_orig)
+                y2 = int((r2 + 0.5) * patch_height_orig)
+                cv2.line(frame, (x1, y1), (x2, y2), (255, 165, 0), 4)
 
         video_writer.write(frame)
         frame_idx += 1
@@ -352,6 +367,7 @@ def main():
         fps, orig_w, orig_h, total_frames = get_video_properties(args.video)
         chunk_size = 16
         all_spatial_edges = []
+        all_temporal_edges = []
 
         num_chunks = total_frames // chunk_size
         logger.info(f"Video has {total_frames} frames, processing in {num_chunks} chunks of {chunk_size}...")
@@ -374,15 +390,16 @@ def main():
 
             attn = outputs.attentions[args.layer][0].mean(dim=0)
 
-            spatial, _, _ = build_edges_from_attn(
+            spatial, temporal, _ = build_edges_from_attn(
                 attn, T_frames=num_in_chunk, H_p=H_p, W_p=W_p, tubelet_size=tubelet_size,
                 k_spatial=args.k_spatial, k_temporal=args.k_temporal, win=args.win
             )
             all_spatial_edges.extend([(f + chunk_start, r1, c1, f2, r2, c2) for f, r1, c1, f2, r2, c2 in spatial])
+            all_temporal_edges.extend([(f0 + chunk_start, r1, c1, f1 + chunk_start, r2, c2) for f0, r1, c1, f1, r2, c2 in temporal])
 
         logger.info("All chunks processed. Rendering final video...")
         video_path = generate_video_output(
-            args.out, args.video, all_spatial_edges,
+            args.out, args.video, all_spatial_edges, all_temporal_edges,
             orig_w, orig_h, patch_size, image_size, fps)
         logger.info(f"[OK] Wrote video: {video_path}")
 
