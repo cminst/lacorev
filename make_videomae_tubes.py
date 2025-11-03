@@ -34,6 +34,9 @@ from pathlib import Path
 import numpy as np
 
 # --- Video decoding and processing ---
+import logging
+logger = logging.getLogger(__name__)
+
 def get_video_properties(video_path):
     """Get video properties using OpenCV."""
     import cv2
