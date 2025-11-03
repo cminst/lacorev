@@ -266,7 +266,6 @@ def generate_video_output(out_path, input_video_path, all_spatial_edges,
     """
     import cv2
 
-    # *** CRITICAL FIX: Read from the INPUT video, not the output path ***
     cap = cv2.VideoCapture(str(input_video_path))
     if not cap.isOpened():
         raise RuntimeError(f"Could not open input video for writing: {input_video_path}")
